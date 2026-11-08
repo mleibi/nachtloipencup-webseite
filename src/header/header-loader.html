@@ -1,7 +1,7 @@
 <!-- In Clubdesk einfügen (Custom HTML, Header-Bereich). Lädt header.html automatisch vom GitHub-Repo. -->
 <div id="nlc-header-mount"></div>
 <script>
-  fetch('https://cdn.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/header.html')
+  fetch('https://cdn.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/src/header/header.html')
     .then(function (r) { return r.text(); })
     .then(function (html) {
       document.getElementById('nlc-header-mount').innerHTML = html;

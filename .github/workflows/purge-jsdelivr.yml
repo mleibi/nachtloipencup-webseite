@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Purge jsDelivr cache for snippet files
         run: |
-          for file in header.html mainpage-content.html; do
+          for file in src/header/header.html src/mainpage/mainpage-content.html; do
             curl -fsSL "https://purge.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/$file"
           done
