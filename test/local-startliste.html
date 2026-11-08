@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<!-- Lokale Testseite, NICHT produktiv / nicht in Clubdesk einfügen. Testet die
+     Startlisten-Logik mit echten (anonymisierten) Beispieldaten aus sample-anmeldeliste.csv.
+     Öffnen via lokalem Server (z.B. "python3 -m http.server" im test/-Ordner), nicht per file://. -->
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Lokaler Test: Anmeldeliste / Startliste</title>
+</head>
+<body>
+<div id="nlc-startliste-mount">Lade Testdaten…</div>
+<script>
+(function () {
+  var CSV_URL = "./sample-anmeldeliste.csv";
+  var MOUNT_ID = "nlc-startliste-mount";
+
+  // Test-Kategorienliste mit Präfix-Matching (die Beispieldaten mischen mehrere
+  // Saisons mit unterschiedlichen Jahrgangs-Klammern, z.B. "U10 Knaben (2014/15)"
+  // und "U10 Knaben (2015/16)"). Rein lokal, entspricht NICHT src/startliste/startliste.js.
+  var CATEGORY_ORDER = [
+    { prefix: "U10 Mädchen", wave: 0 },
+    { prefix: "U10 Knaben", wave: 0 },
+    { prefix: "U12 Mädchen", wave: 0 },
+    { prefix: "U12 Knaben", wave: 0 },
+    { prefix: "U14 Mädchen", wave: 1 },
+    { prefix: "U14 Knaben", wave: 1 },
+    { prefix: "U16 Mädchen", wave: 1 },
+    { prefix: "U16 Knaben", wave: 1 },
+    { prefix: "Juniorinnen Frauen", wave: 1 },
+    { prefix: "Frauen", wave: 1 },
+    { prefix: "Fun", wave: 1 },
+    { prefix: "Junior Männer", wave: 2 },
+    { prefix: "Männer", wave: 2 }
+  ];
+  var DEFAULT_WAVE_TIMES = ["18:30:00", "18:45:00", "19:05:00"];
+  var SLOT_SECONDS = 30;
+  var RESERVE_SLOTS_BETWEEN_CATEGORIES = 2;
+
+  function waveTimesFor() { return DEFAULT_WAVE_TIMES; }
+
+  // Wandelt "08.11.2026 14:11:09" in einen vergleichbaren Zeitstempel (ms) um.
+  function parseErhaltenAm(str) {
+    var m = (str || "").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+    if (!m) return Number.MAX_SAFE_INTEGER;
+    return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +m[6]).getTime();
+  }
+
+  function categoryInfo(name) {
+    var trimmed = (name || "").trim();
+    for (var i = 0; i < CATEGORY_ORDER.length; i++) {
+      if (trimmed.indexOf(CATEGORY_ORDER[i].prefix) === 0) return CATEGORY_ORDER[i];
+    }
+    return null;
+  }
+
+  function parseCsv(text) {
+    var rows = []; var row = []; var field = ""; var inQuotes = false; var i = 0;
+    function endField() { row.push(field); field = ""; }
+    function endRow() { endField(); rows.push(row); row = []; }
+    while (i < text.length) {
+      var c = text[i];
+      if (inQuotes) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i += 2; continue; } inQuotes = false; i++; continue; }
+        field += c; i++; continue;
+      }
+      if (c === '"') { inQuotes = true; i++; continue; }
+      if (c === ";") { endField(); i++; continue; }
+      if (c === "\r") { i++; continue; }
+      if (c === "\n") { endRow(); i++; continue; }
+      field += c; i++;
+    }
+    if (field.length > 0 || row.length > 0) endRow();
+    return rows.filter(function (r) { return r.length > 1 || r[0] !== ""; });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+
+  function addSeconds(hms, seconds) {
+    var parts = hms.split(":").map(Number);
+    var total = parts[0] * 3600 + parts[1] * 60 + parts[2] + seconds;
+    var h = Math.floor(total / 3600) % 24;
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    return pad(h) + ":" + pad(m) + ":" + pad(s);
+  }
+
+  var FIXED_COLUMNS = ["Vorname", "Nachname", "Erhalten am", "Jahrgang", "Skiclub", "E-Mail", "Kategorie"];
+  function findColumn(header, name) {
+    for (var i = 0; i < header.length; i++) if (header[i].trim() === name) return i;
+    return -1;
+  }
+
+  function buildEntries(header, rows) {
+    var vornameIdx = findColumn(header, "Vorname");
+    var nachnameIdx = findColumn(header, "Nachname");
+    var erhaltenAmIdx = findColumn(header, "Erhalten am");
+    var jahrgangIdx = findColumn(header, "Jahrgang");
+    var skiclubIdx = findColumn(header, "Skiclub");
+    var kategorieIdx = findColumn(header, "Kategorie");
+    var dateColIndexes = [];
+    for (var h = 0; h < header.length; h++) if (FIXED_COLUMNS.indexOf(header[h].trim()) === -1) dateColIndexes.push(h);
+
+    return rows.map(function (r) {
+      return {
+        vorname: (r[vornameIdx] || "").trim(),
+        nachname: (r[nachnameIdx] || "").trim(),
+        erhaltenAm: parseErhaltenAm(r[erhaltenAmIdx]),
+        jahrgang: (r[jahrgangIdx] || "").trim(),
+        skiclub: (r[skiclubIdx] || "").trim(),
+        kategorie: (r[kategorieIdx] || "").trim(),
+        rennen: dateColIndexes.filter(function (idx) { return (r[idx] || "").trim().toLowerCase() === "ja"; })
+      };
+    });
+  }
+
+  function groupByCategory(entrants) {
+    var buckets = CATEGORY_ORDER.map(function (c) { return { category: c, entrants: [] }; });
+    var unknown = { category: { prefix: "Weitere", wave: 3 }, entrants: [] };
+    entrants.forEach(function (e) {
+      var info = categoryInfo(e.kategorie);
+      var bucket = info ? buckets[CATEGORY_ORDER.indexOf(info)] : unknown;
+      bucket.entrants.push(e);
+    });
+    buckets = buckets.concat(unknown.entrants.length ? [unknown] : []);
+    buckets.forEach(function (b) { b.entrants = b.entrants.slice().sort(function (a, c) { return a.erhaltenAm - c.erhaltenAm; }); });
+    return buckets.filter(function (b) { return b.entrants.length > 0; });
+  }
+
+  function renderMassenstart(buckets, waveTimes) {
+    var waves = [[], [], [], []];
+    buckets.forEach(function (b) { waves[b.category.wave].push(b); });
+    var html = '<div class="nlc-sl-table-wrap"><table class="nlc-sl-table"><thead><tr>';
+    html += "<th>Nr.</th><th>Startzeit</th><th>Nachname</th><th>Vorname</th><th>Jahrgang</th><th>Skiclub</th><th>Kategorie</th></tr></thead><tbody>";
+    var bib = 1;
+    var catCounter = 0;
+    waves.forEach(function (waveBuckets, waveIdx) {
+      if (waveBuckets.length === 0) return;
+      var time = waveIdx < waveTimes.length ? waveTimes[waveIdx] : waveTimes[waveTimes.length - 1];
+      waveBuckets.forEach(function (b, bIdx) {
+        var catClass = "nlc-sl-cat-" + (catCounter % 2);
+        b.entrants.forEach(function (e, eIdx) {
+          var rowClass = catClass + (eIdx === 0 ? " nlc-sl-cat-start" : "");
+          html += '<tr class="' + rowClass + '"><td>' + bib + "</td><td>" + time + "</td><td>" + escapeHtml(e.nachname) + "</td><td>" +
+            escapeHtml(e.vorname) + "</td><td>" + escapeHtml(e.jahrgang) + "</td><td>" + escapeHtml(e.skiclub) +
+            "</td><td>" + escapeHtml(e.kategorie) + "</td></tr>";
+          bib++;
+        });
+        catCounter++;
+
+        for (var r = 0; r < RESERVE_SLOTS_BETWEEN_CATEGORIES; r++) {
+          html += '<tr class="nlc-sl-reserve"><td>' + bib + "</td><td>" + time + '</td><td colspan="5"><em>frei (Nachmeldung)</em></td></tr>';
+          bib++;
+        }
+      });
+    });
+    html += "</tbody></table></div>";
+    return html;
+  }
+
+  function renderEinzelstart(buckets, waveTimes) {
+    var waves = [[], [], [], []];
+    buckets.forEach(function (b) { waves[b.category.wave].push(b); });
+    var html = '<div class="nlc-sl-table-wrap"><table class="nlc-sl-table"><thead><tr>';
+    html += "<th>Nr.</th><th>Startzeit</th><th>Nachname</th><th>Vorname</th><th>Jahrgang</th><th>Skiclub</th><th>Kategorie</th></tr></thead><tbody>";
+    var bib = 1;
+    var catCounter = 0;
+    waves.forEach(function (waveBuckets, waveIdx) {
+      if (waveBuckets.length === 0) return;
+      var time = waveIdx < waveTimes.length ? waveTimes[waveIdx] : waveTimes[waveTimes.length - 1];
+      waveBuckets.forEach(function (b, bIdx) {
+        var catClass = "nlc-sl-cat-" + (catCounter % 2);
+        b.entrants.forEach(function (e, eIdx) {
+          var rowClass = catClass + (eIdx === 0 ? " nlc-sl-cat-start" : "");
+          html += '<tr class="' + rowClass + '"><td>' + bib + "</td><td>" + time + "</td><td>" + escapeHtml(e.nachname) + "</td><td>" +
+            escapeHtml(e.vorname) + "</td><td>" + escapeHtml(e.jahrgang) + "</td><td>" + escapeHtml(e.skiclub) +
+            "</td><td>" + escapeHtml(e.kategorie) + "</td></tr>";
+          bib++; time = addSeconds(time, SLOT_SECONDS);
+        });
+        catCounter++;
+        for (var r = 0; r < RESERVE_SLOTS_BETWEEN_CATEGORIES; r++) {
+          html += '<tr class="nlc-sl-reserve"><td>' + bib + "</td><td>" + time + '</td><td colspan="5"><em>frei (Nachmeldung)</em></td></tr>';
+          bib++; time = addSeconds(time, SLOT_SECONDS);
+        }
+      });
+    });
+    html += "</tbody></table></div>";
+    return html;
+  }
+
+  function render(rows) {
+    var mount = document.getElementById(MOUNT_ID);
+    var header = rows[0];
+    var dateColIndexes = [];
+    for (var h = 0; h < header.length; h++) if (FIXED_COLUMNS.indexOf(header[h].trim()) === -1) dateColIndexes.push(h);
+
+    var entries = buildEntries(header, rows.slice(1));
+
+    var races = dateColIndexes
+      .map(function (idx) {
+        var raceHeader = header[idx];
+        var entrants = entries.filter(function (e) { return e.rennen.indexOf(idx) !== -1; });
+        return { idx: idx, header: raceHeader, entrants: entrants };
+      })
+      .filter(function (r) { return r.entrants.length > 0; });
+
+    var html = '<div class="nlc-sl-wrap"><h3>Provisorische Startlisten (Testdaten)</h3>';
+    html += '<p class="nlc-sl-disclaimer">⚠️ Diese Startliste ist <strong>provisorisch</strong>, solange die Anmeldung läuft. ' +
+      'Startnummern und Startzeiten können sich bis zum Anmeldeschluss noch ändern. ' +
+      'Die definitive Startnummer erhältst du an der Startnummernausgabe vor Ort.</p>';
+
+    html += '<label class="nlc-sl-race-label" for="nlc-sl-race-select">Rennen auswählen: </label>';
+    html += '<select id="nlc-sl-race-select" class="nlc-sl-race-select"><option value="all">Alle Rennen</option>';
+    races.forEach(function (r, i) {
+      html += '<option value="' + i + '">' + escapeHtml(r.header) + "</option>";
+    });
+    html += "</select>";
+
+    races.forEach(function (r, i) {
+      var isMassenstart = r.header.toLowerCase().indexOf("massenstart") !== -1;
+      var waveTimes = waveTimesFor(r.header);
+      var buckets = groupByCategory(r.entrants);
+      html += '<div class="nlc-sl-race-section" data-race-index="' + i + '">';
+      html += '<h4 class="nlc-sl-race">' + escapeHtml(r.header) + "</h4>";
+      html += isMassenstart ? renderMassenstart(buckets, waveTimes) : renderEinzelstart(buckets, waveTimes);
+      html += "</div>";
+    });
+    html += "</div>";
+    mount.innerHTML = html;
+
+    var select = document.getElementById("nlc-sl-race-select");
+    var sections = mount.querySelectorAll(".nlc-sl-race-section");
+    if (select) {
+      select.addEventListener("change", function () {
+        sections.forEach(function (section) {
+          var show = select.value === "all" || section.getAttribute("data-race-index") === select.value;
+          section.style.display = show ? "" : "none";
+        });
+      });
+    }
+  }
+
+
+  var style = document.createElement("style");
+  style.textContent =
+    "body{font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem;}" +
+    ".nlc-sl-wrap{margin-bottom:2rem;}" +
+    ".nlc-sl-disclaimer{background:#fdf6e3;border:1px solid #e3d7b0;border-radius:8px;padding:.7rem 1rem;font-size:.9rem;color:#5b4b1f;}" +
+    ".nlc-sl-race-label{font-weight:600;}" +
+    ".nlc-sl-race-select{margin:.5rem 0 1rem;padding:.4rem .6rem;border-radius:6px;border:1px solid #cdb97a;font-size:.95rem;}" +
+    ".nlc-sl-race{margin:2rem 0 .5rem;padding-bottom:.3rem;border-bottom:3px solid #cdb97a;}" +
+    ".nlc-sl-wave{margin:1.2rem 0 .3rem;}" +
+    ".nlc-sl-category{font-weight:600;margin:.8rem 0 .3rem;}" +
+    ".nlc-sl-table-wrap{overflow-x:auto;margin-bottom:.5rem;}" +
+    ".nlc-sl-table{width:100%;border-collapse:collapse;font-size:.9rem;}" +
+    ".nlc-sl-table thead th{background:#16213e;color:#eaf6ff;text-align:left;padding:.5rem .7rem;}" +
+    ".nlc-sl-table tbody td{padding:.4rem .7rem;border-bottom:1px solid #ddd;}" +
+    ".nlc-sl-table tbody tr.nlc-sl-cat-0{background:#ffffff;}" +
+    ".nlc-sl-table tbody tr.nlc-sl-cat-1{background:#f7f5ee;}" +
+    ".nlc-sl-table tbody tr.nlc-sl-cat-start td{border-top:2px solid #cdb97a;}" +
+    ".nlc-sl-table tbody tr.nlc-sl-reserve td{color:#999;font-style:italic;}";
+  document.head.appendChild(style);
+
+  fetch(CSV_URL)
+    .then(function (res) { return res.text(); })
+    .then(function (text) { render(parseCsv(text)); })
+    .catch(function (err) {
+      document.getElementById(MOUNT_ID).textContent = "Fehler: " + err.message + " (lokal per http.server öffnen, nicht file://)";
+    });
+})();
+</script>
+</body>
+</html>

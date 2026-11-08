@@ -114,32 +114,12 @@
       .replace(/>/g, "&gt;");
   }
 
-  // Deterministischer 32-bit Hash (djb2) als Seed für den PRNG.
-  function hashSeed(str) {
-    var h = 5381;
-    for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
-    return h;
-  }
-
-  // Seeded PRNG (mulberry32) - gleicher Seed ergibt immer dieselbe Zahlenfolge.
-  function mulberry32(seed) {
-    return function () {
-      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
-      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
-  // Deterministisches Shuffle (Fisher-Yates) anhand eines Seed-Strings.
-  function seededShuffle(arr, seedStr) {
-    var rnd = mulberry32(hashSeed(seedStr));
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(rnd() * (i + 1));
-      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
-    }
-    return a;
+  // Wandelt "08.11.2026 14:11:09" in einen vergleichbaren Zeitstempel (ms) um.
+  // Nicht parsbare Werte landen ans Ende (Number.MAX_SAFE_INTEGER), statt den Sort zu verfälschen.
+  function parseErhaltenAm(str) {
+    var m = (str || "").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+    if (!m) return Number.MAX_SAFE_INTEGER;
+    return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +m[6]).getTime();
   }
 
   function addSeconds(hms, seconds) {
@@ -152,17 +132,38 @@
     return pad(h) + ":" + pad(m) + ":" + pad(s);
   }
 
+  // Spaltenindizes werden anhand der Kopfzeilen-Texte ermittelt (nicht per fixer Position),
+  // da ClubDesk die Spaltenreihenfolge im CSV-Export ändern kann.
+  var FIXED_COLUMNS = ["Vorname", "Nachname", "Erhalten am", "Jahrgang", "Skiclub", "E-Mail", "Kategorie"];
+
+  function findColumn(header, name) {
+    for (var i = 0; i < header.length; i++) {
+      if (header[i].trim() === name) return i;
+    }
+    return -1;
+  }
+
   function buildEntries(header, rows) {
+    var vornameIdx = findColumn(header, "Vorname");
+    var nachnameIdx = findColumn(header, "Nachname");
+    var erhaltenAmIdx = findColumn(header, "Erhalten am");
+    var jahrgangIdx = findColumn(header, "Jahrgang");
+    var skiclubIdx = findColumn(header, "Skiclub");
+    var kategorieIdx = findColumn(header, "Kategorie");
+
     var dateColIndexes = [];
-    for (var h = 7; h < header.length; h++) dateColIndexes.push(h);
+    for (var h = 0; h < header.length; h++) {
+      if (FIXED_COLUMNS.indexOf(header[h].trim()) === -1) dateColIndexes.push(h);
+    }
 
     return rows.map(function (r) {
       return {
-        vorname: (r[0] || "").trim(),
-        nachname: (r[2] || "").trim(),
-        jahrgang: (r[3] || "").trim(),
-        skiclub: (r[4] || "").trim(),
-        kategorie: (r[6] || "").trim(),
+        vorname: (r[vornameIdx] || "").trim(),
+        nachname: (r[nachnameIdx] || "").trim(),
+        erhaltenAm: parseErhaltenAm(r[erhaltenAmIdx]),
+        jahrgang: (r[jahrgangIdx] || "").trim(),
+        skiclub: (r[skiclubIdx] || "").trim(),
+        kategorie: (r[kategorieIdx] || "").trim(),
         rennen: dateColIndexes
           .filter(function (idx) { return (r[idx] || "").trim().toLowerCase() === "ja"; })
       };
@@ -171,7 +172,11 @@
 
   // Gruppiert Teilnehmer einer einzelnen Renndatums-Spalte nach Kategorie (in fester Reihenfolge),
   // unbekannte Kategorien landen gesammelt am Ende.
-  function groupByCategory(entrants, raceHeader) {
+  //
+  // Reihenfolge innerhalb der Kategorie: nach Anmeldezeitpunkt (Erhalten am), nicht zufällig.
+  // Nur so bleiben Startnummer/-zeit bestehender Anmeldungen stabil, wenn später jemand
+  // Neues dazukommt (neue Person hat immer einen späteren Zeitstempel -> wird immer ans Ende gehängt).
+  function groupByCategory(entrants) {
     var buckets = CATEGORY_ORDER.map(function (c) { return { category: c, entrants: [] }; });
     var unknown = { category: { name: "Weitere", wave: 3 }, entrants: [] };
 
@@ -184,7 +189,7 @@
     buckets = buckets.concat(unknown.entrants.length ? [unknown] : []);
 
     buckets.forEach(function (b) {
-      b.entrants = seededShuffle(b.entrants, raceHeader + "|" + b.category.name);
+      b.entrants = b.entrants.slice().sort(function (a, c) { return a.erhaltenAm - c.erhaltenAm; });
     });
 
     return buckets.filter(function (b) { return b.entrants.length > 0; });
@@ -194,24 +199,38 @@
     var waves = [[], [], [], []];
     buckets.forEach(function (b) { waves[b.category.wave].push(b); });
 
-    var html = "";
+    var html = '<div class="nlc-sl-table-wrap"><table class="nlc-sl-table"><thead><tr>';
+    html += "<th>Nr.</th><th>Startzeit</th><th>Nachname</th><th>Vorname</th><th>Jahrgang</th><th>Skiclub</th><th>Kategorie</th></tr></thead><tbody>";
+
+    var bib = 1;
+    var catCounter = 0;
     waves.forEach(function (waveBuckets, waveIdx) {
       if (waveBuckets.length === 0) return;
       var time = waveIdx < waveTimes.length ? waveTimes[waveIdx] : waveTimes[waveTimes.length - 1];
-      html += '<h4 class="nlc-sl-wave">Start ' + time.slice(0, 5) + " Uhr</h4>";
-      waveBuckets.forEach(function (b) {
-        html += '<p class="nlc-sl-category">' + escapeHtml(b.category.name) + "</p>";
-        html += '<div class="nlc-sl-table-wrap"><table class="nlc-sl-table"><thead><tr>';
-        html += "<th>Nachname</th><th>Vorname</th><th>Jahrgang</th><th>Skiclub</th></tr></thead><tbody>";
-        b.entrants.forEach(function (e) {
-          html += "<tr><td>" + escapeHtml(e.nachname) + "</td><td>" + escapeHtml(e.vorname) + "</td><td>" +
-            escapeHtml(e.jahrgang) + "</td><td>" + escapeHtml(e.skiclub) + "</td></tr>";
+      waveBuckets.forEach(function (b, bIdx) {
+        var catClass = "nlc-sl-cat-" + (catCounter % 2);
+        b.entrants.forEach(function (e, eIdx) {
+          var rowClass = catClass + (eIdx === 0 ? " nlc-sl-cat-start" : "");
+          html += '<tr class="' + rowClass + '"><td>' + bib + "</td><td>" + time + "</td><td>" + escapeHtml(e.nachname) + "</td><td>" +
+            escapeHtml(e.vorname) + "</td><td>" + escapeHtml(e.jahrgang) + "</td><td>" + escapeHtml(e.skiclub) +
+            "</td><td>" + escapeHtml(b.category.name) + "</td></tr>";
+          bib++;
         });
-        html += "</tbody></table></div>";
+        catCounter++;
+
+        for (var r = 0; r < RESERVE_SLOTS_BETWEEN_CATEGORIES; r++) {
+          html += '<tr class="nlc-sl-reserve"><td>' + bib + "</td><td>" + time +
+            '</td><td colspan="5"><em>frei (Nachmeldung)</em></td></tr>';
+          bib++;
+        }
       });
     });
+
+    html += "</tbody></table></div>";
     return html;
   }
+
+
 
   function renderEinzelstart(buckets, waveTimes) {
     var waves = [[], [], [], []];
@@ -221,27 +240,28 @@
     html += "<th>Nr.</th><th>Startzeit</th><th>Nachname</th><th>Vorname</th><th>Jahrgang</th><th>Skiclub</th><th>Kategorie</th></tr></thead><tbody>";
 
     var bib = 1;
+    var catCounter = 0;
     waves.forEach(function (waveBuckets, waveIdx) {
       if (waveBuckets.length === 0) return;
       var time = waveIdx < waveTimes.length ? waveTimes[waveIdx] : waveTimes[waveTimes.length - 1];
 
       waveBuckets.forEach(function (b, bIdx) {
-        b.entrants.forEach(function (e) {
-          html += "<tr><td>" + bib + "</td><td>" + time.slice(0, 5) + "</td><td>" + escapeHtml(e.nachname) +
+        var catClass = "nlc-sl-cat-" + (catCounter % 2);
+        b.entrants.forEach(function (e, eIdx) {
+          var rowClass = catClass + (eIdx === 0 ? " nlc-sl-cat-start" : "");
+          html += '<tr class="' + rowClass + '"><td>' + bib + "</td><td>" + time + "</td><td>" + escapeHtml(e.nachname) +
             "</td><td>" + escapeHtml(e.vorname) + "</td><td>" + escapeHtml(e.jahrgang) + "</td><td>" +
             escapeHtml(e.skiclub) + "</td><td>" + escapeHtml(b.category.name) + "</td></tr>";
           bib++;
           time = addSeconds(time, SLOT_SECONDS);
         });
+        catCounter++;
 
-        var isLastCategoryInWave = bIdx === waveBuckets.length - 1;
-        if (!isLastCategoryInWave) {
-          for (var r = 0; r < RESERVE_SLOTS_BETWEEN_CATEGORIES; r++) {
-            html += '<tr class="nlc-sl-reserve"><td>' + bib + "</td><td>" + time.slice(0, 5) +
-              '</td><td colspan="5"><em>reserviert</em></td></tr>';
-            bib++;
-            time = addSeconds(time, SLOT_SECONDS);
-          }
+        for (var r = 0; r < RESERVE_SLOTS_BETWEEN_CATEGORIES; r++) {
+          html += '<tr class="nlc-sl-reserve"><td>' + bib + "</td><td>" + time +
+            '</td><td colspan="5"><em>frei (Nachmeldung)</em></td></tr>';
+          bib++;
+          time = addSeconds(time, SLOT_SECONDS);
         }
       });
     });
@@ -286,7 +306,9 @@
 
     var header = rows[0];
     var dateColIndexes = [];
-    for (var h = 7; h < header.length; h++) dateColIndexes.push(h);
+    for (var h = 0; h < header.length; h++) {
+      if (FIXED_COLUMNS.indexOf(header[h].trim()) === -1) dateColIndexes.push(h);
+    }
 
     var entries = buildEntries(header, rows.slice(1));
     entries.forEach(function (e) {
@@ -295,22 +317,50 @@
 
     var html = renderAnmeldeliste(entries);
 
+    var races = dateColIndexes
+      .map(function (idx) {
+        var raceHeader = header[idx];
+        var entrants = entries.filter(function (e) { return e.rennen.indexOf(idx) !== -1; });
+        return { idx: idx, header: raceHeader, entrants: entrants };
+      })
+      .filter(function (r) { return r.entrants.length > 0; });
+
     html += '<div class="nlc-sl-wrap"><h3>Provisorische Startlisten</h3>';
-    dateColIndexes.forEach(function (idx) {
-      var raceHeader = header[idx];
-      var entrants = entries.filter(function (e) { return e.rennen.indexOf(idx) !== -1; });
-      if (entrants.length === 0) return;
+    html += '<p class="nlc-sl-disclaimer">⚠️ Diese Startliste ist <strong>provisorisch</strong>, solange die Anmeldung l\u00e4uft. ' +
+      'Startnummern und Startzeiten k\u00f6nnen sich bis zum Anmeldeschluss noch \u00e4ndern. ' +
+      'Die definitive Startnummer erh\u00e4ltst du an der Startnummernausgabe vor Ort.</p>';
 
-      var isMassenstart = raceHeader.toLowerCase().indexOf("massenstart") !== -1;
-      var waveTimes = waveTimesFor(raceHeader);
-      var buckets = groupByCategory(entrants, raceHeader);
+    html += '<label class="nlc-sl-race-label" for="nlc-sl-race-select">Rennen ausw\u00e4hlen: </label>';
+    html += '<select id="nlc-sl-race-select" class="nlc-sl-race-select"><option value="all">Alle Rennen</option>';
+    races.forEach(function (r, i) {
+      html += '<option value="' + i + '">' + escapeHtml(r.header) + "</option>";
+    });
+    html += "</select>";
 
-      html += '<h4 class="nlc-sl-race">' + escapeHtml(raceHeader) + "</h4>";
+    races.forEach(function (r, i) {
+      var isMassenstart = r.header.toLowerCase().indexOf("massenstart") !== -1;
+      var waveTimes = waveTimesFor(r.header);
+      var buckets = groupByCategory(r.entrants);
+
+      html += '<div class="nlc-sl-race-section" data-race-index="' + i + '">';
+      html += '<h4 class="nlc-sl-race">' + escapeHtml(r.header) + "</h4>";
       html += isMassenstart ? renderMassenstart(buckets, waveTimes) : renderEinzelstart(buckets, waveTimes);
+      html += "</div>";
     });
     html += "</div>";
 
     mount.innerHTML = html;
+
+    var select = document.getElementById("nlc-sl-race-select");
+    var sections = mount.querySelectorAll(".nlc-sl-race-section");
+    if (select) {
+      select.addEventListener("change", function () {
+        sections.forEach(function (section) {
+          var show = select.value === "all" || section.getAttribute("data-race-index") === select.value;
+          section.style.display = show ? "" : "none";
+        });
+      });
+    }
   }
 
   function injectStyle() {
@@ -322,13 +372,18 @@
       ".nlc-sl-wrap h3{color:#16213e;}" +
       ".nlc-sl-count{font-weight:600;color:#16213e;margin:0 0 .75rem;}" +
       ".nlc-sl-race{margin:2rem 0 .5rem;padding-bottom:.3rem;border-bottom:3px solid #cdb97a;color:#16213e;}" +
+      ".nlc-sl-disclaimer{background:#fdf6e3;border:1px solid #e3d7b0;border-radius:8px;padding:.7rem 1rem;font-size:.9rem;color:#5b4b1f;}" +
+      ".nlc-sl-race-label{font-weight:600;color:#16213e;}" +
+      ".nlc-sl-race-select{margin:.5rem 0 1rem;padding:.4rem .6rem;border-radius:6px;border:1px solid #cdb97a;font-size:.95rem;}" +
       ".nlc-sl-wave{margin:1.2rem 0 .3rem;color:#16213e;}" +
       ".nlc-sl-category{font-weight:600;margin:.8rem 0 .3rem;}" +
       ".nlc-sl-table-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 2px 10px rgba(22,33,62,.08);margin-bottom:.5rem;}" +
       ".nlc-sl-table{width:100%;border-collapse:collapse;font-size:.92rem;}" +
       ".nlc-sl-table thead th{background:#16213e;color:#eaf6ff;text-align:left;padding:.6rem .8rem;}" +
       ".nlc-sl-table tbody td{padding:.55rem .8rem;border-bottom:1px solid #e7e0cc;}" +
-      ".nlc-sl-table tbody tr:nth-child(even){background:#f7f5ee;}" +
+      ".nlc-sl-table tbody tr.nlc-sl-cat-0{background:#ffffff;}" +
+      ".nlc-sl-table tbody tr.nlc-sl-cat-1{background:#f7f5ee;}" +
+      ".nlc-sl-table tbody tr.nlc-sl-cat-start td{border-top:2px solid #cdb97a;}" +
       ".nlc-sl-table tbody tr.nlc-sl-reserve td{color:#9aa3b2;font-style:italic;}" +
       ".nlc-sl-empty{color:#5b6678;}";
     document.head.appendChild(style);

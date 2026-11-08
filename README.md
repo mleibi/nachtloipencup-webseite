@@ -39,7 +39,22 @@ Nach dem einmaligen Einfügen der Loader in Clubdesk reicht es, die Dateien unte
 
 ## Provisorische Startliste / Anmeldeliste
 
-`src/startliste/startliste.js` lädt bei jedem Seitenaufruf live die öffentliche CSV-Exportdatei der ClubDesk-Anmeldetabelle ("Nachtloipencup Anmeldeliste 2026/27", via `fileservlet`-Link) und rendert daraus eine sortierte Tabelle (Nachname, Vorname, Jahrgang, Skiclub, Kategorie, angemeldete Renndaten). E-Mail-Adresse und Anmeldezeitpunkt werden aus Datenschutzgründen nicht angezeigt.
+Die Seite zeigt zwei Abschnitte, die beide aus denselben Live-Daten generiert werden: zuerst die **Anmeldeliste** (flache Liste aller Anmeldungen), danach die **Provisorische Startliste** pro Renndatum (siehe [STARTLISTE-REGELN.md](src/startliste/STARTLISTE-REGELN.md) für die genauen Regeln). Der Mainpage-Button heisst bewusst "Anmeldeliste" (geläufigerer Begriff, matcht die ClubDesk-URL `/anmeldeliste`), auch wenn die Seite zusätzlich die Startliste enthält.
+
+`src/startliste/startliste.js` lädt bei jedem Seitenaufruf live die öffentliche CSV-Exportdatei der ClubDesk-Anmeldetabelle ("Nachtloipencup Anmeldeliste 2026/27", via `fileservlet`-Link) und rendert daraus beide Abschnitte. E-Mail-Adresse wird aus Datenschutzgründen nie angezeigt; "Erhalten am" wird nur intern zur Sortierung verwendet.
 
 Die CSV-URL enthält ein von ClubDesk generiertes Signatur-Token. Falls ClubDesk das Dokument ersetzt/neu hochlädt, ändert sich dieses Token und muss in `startliste.js` (Variable `CSV_URL`) aktualisiert werden.
+
+## Lokale Test-Seite (kein produktiver Code)
+
+`test/local-startliste.html` + `test/sample-anmeldeliste.csv` erlauben es, die Startlisten-Logik lokal mit echten (historischen) Beispieldaten zu überprüfen, ohne ClubDesk oder die Live-CSV anzufassen. Diese Dateien werden nirgends in Clubdesk eingefügt und sind nicht Teil der Loader-Kette.
+
+Ausführen:
+
+```
+cd test
+python3 -m http.server 8765
+```
+
+Danach `http://localhost:8765/local-startliste.html` im Browser öffnen (nicht direkt per `file://`, da `fetch()` der lokalen CSV sonst an CORS scheitert).
 

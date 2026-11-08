@@ -35,8 +35,8 @@ Kategorien starten in dieser festen Reihenfolge, gruppiert in drei "Wellen" (gem
 ## Massenstart
 
 - Alle Kategorien einer Welle starten **gemeinsam** zur Wellen-Startzeit.
-- Pro Rennen eine Liste **gruppiert nach Kategorie**, innerhalb der Kategorie Teilnehmer in zufälliger, aber stabiler Reihenfolge (siehe Randomisierung unten).
-- Keine individuellen Startzeiten pro Person nötig (nur die Wellen-Startzeit wird angezeigt).
+- Tabelle hat dieselben Spalten wie beim Einzelstart (Nr., Startzeit, Nachname, Vorname, Jahrgang, Skiclub, Kategorie) — Startzeit ist für alle Personen derselben Welle identisch.
+- Fortlaufende Startnummern für das gesamte Rennen, wie beim Einzelstart.
 
 ## Einzelstart
 
@@ -45,13 +45,20 @@ Kategorien starten in dieser festen Reihenfolge, gruppiert in drei "Wellen" (gem
 - Zwischen zwei Kategorien **derselben Welle** werden **2 reservierte Leer-Startplätze** (= 1 Minute, je 2×30s) eingefügt, für kurzfristige Nachmeldungen. Diese Plätze erscheinen in der Liste ohne Namen.
 - Beim Wechsel zu einer **neuen Welle** springt die Uhrzeit direkt auf die nächste Wellen-Startzeit (keine zusätzlichen Leerplätze nötig, der Wellen-Abstand dient bereits als Puffer).
 
-## Randomisierung
+## Reihenfolge innerhalb einer Kategorie
 
-- Innerhalb jeder Kategorie wird die Reihenfolge der Teilnehmer **zufällig, aber deterministisch** bestimmt: ein seeded Pseudo-Zufallsgenerator (kein `Math.random()`), dessen Seed sich aus Renndatum + Kategorie-Name ableitet.
-- Dieselbe Eingabe (gleiche Liste an Anmeldungen) ergibt bei jedem Seitenaufruf **exakt dieselbe Reihenfolge** — kein Neumischen bei jedem Laden.
-- Ändert sich die Anmeldeliste (neue/gelöschte Anmeldung), kann sich die Reihenfolge für die betroffene Kategorie ändern — das ist erwartet.
+- Teilnehmer werden nach **Anmeldezeitpunkt** (CSV-Spalte "Erhalten am") sortiert, nicht zufällig gemischt.
+- Grund: Eine zufällige Reihenfolge müsste bei jeder neuen Anmeldung komplett neu gewürfelt werden (ändert sich die Anzahl Personen, ändert sich die ganze Permutation) — das würde Startnummern/-zeiten bereits angemeldeter Personen ständig verschieben. Nach Anmeldezeitpunkt sortiert landet eine neu dazukommende Person immer **ans Ende ihrer Kategorie**, ohne bereits vorhandene Personen zu verschieben.
+- Bewusst **kein** fixes Nummern-Kontingent pro Kategorie (z. B. "Kategorie X bekommt immer Bibs 50-65") — das wäre für eine Vereins-Breitensport-Veranstaltung unnötig komplex (KISS). Die Liste ist explizit **provisorisch**; die definitive Startnummer wird vor Ort an der Startnummernausgabe abgeholt. Kleine Verschiebungen bei späten Anmeldungen (eine frühere Kategorie wächst) sind akzeptiert.
+- Die 2 reservierten Leerplätze gelten nach **jeder** Kategorie, auch der letzten einer Welle (nicht nur zwischen Kategorien derselben Welle).
+
+## Anzeige
+
+- Ein Dropdown ("Rennen auswählen") erlaubt die Auswahl eines einzelnen Renndatums oder "Alle Rennen" (Standard: alle gestapelt sichtbar).
+- Die Auswahl blendet nur die Anzeige ein/aus (reines CSS `display`), es wird nichts neu berechnet.
 
 ## Offene Punkte für die Implementierung
 
-- Die 2 reservierten Leerplätze pro Kategorie-Übergang sind ein Startwert und bei Bedarf anpassbar.
-- E-Mail und "Erhalten am" werden wie bei der Anmeldeliste nie angezeigt.
+- Die 2 reservierten Leerplätze pro Kategorie sind ein Startwert und bei Bedarf anpassbar.
+- E-Mail wird wie bei der Anmeldeliste nie angezeigt. "Erhalten am" wird nur intern zur Sortierung verwendet, nie angezeigt.
+
