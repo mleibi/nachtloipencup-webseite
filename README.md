@@ -37,11 +37,11 @@ https://cdn.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/src/mainpage/mai
 
 Nach dem einmaligen Einfügen der Loader in Clubdesk reicht es, die Dateien unter `src/` hier im Repo zu ändern und nach `main` zu pushen – die Webseite zeigt danach automatisch den neuen Inhalt. Ein GitHub Action Workflow ([.github/workflows/purge-jsdelivr.yml](.github/workflows/purge-jsdelivr.yml)) leert bei jedem Push den jsDelivr-Cache, damit die Änderung sofort (statt erst nach bis zu 24h CDN-Cache) sichtbar wird.
 
-## Provisorische Startliste / Anmeldeliste
+## Provisorische Startliste
 
-Die Seite zeigt zwei Abschnitte, die beide aus denselben Live-Daten generiert werden: zuerst die **Anmeldeliste** (flache Liste aller Anmeldungen), danach die **Provisorische Startliste** pro Renndatum (siehe [STARTLISTE-REGELN.md](src/startliste/STARTLISTE-REGELN.md) für die genauen Regeln). Der Mainpage-Button heisst bewusst "Anmeldeliste" (geläufigerer Begriff, matcht die ClubDesk-URL `/anmeldeliste`), auch wenn die Seite zusätzlich die Startliste enthält.
+Die Seite zeigt für jedes Renndatum (Dropdown: ein Rennen oder "Alle Rennen") die **Provisorische Startliste** (siehe [STARTLISTE-REGELN.md](src/startliste/STARTLISTE-REGELN.md) für die genauen Regeln).
 
-`src/startliste/startliste.js` lädt bei jedem Seitenaufruf live die öffentliche CSV-Exportdatei der ClubDesk-Anmeldetabelle ("Nachtloipencup Anmeldeliste 2026/27", via `fileservlet`-Link) und rendert daraus beide Abschnitte. E-Mail-Adresse wird aus Datenschutzgründen nie angezeigt; "Erhalten am" wird nur intern zur Sortierung verwendet.
+`src/startliste/startliste.js` lädt bei jedem Seitenaufruf live die öffentliche CSV-Exportdatei der ClubDesk-Anmeldetabelle ("Nachtloipencup Anmeldeliste 2026/27", via `fileservlet`-Link) und rendert daraus die Startliste. E-Mail-Adresse wird aus Datenschutzgründen nie angezeigt; "Erhalten am" wird nur intern zur Sortierung verwendet.
 
 Die CSV-URL enthält ein von ClubDesk generiertes Signatur-Token. Falls ClubDesk das Dokument ersetzt/neu hochlädt, ändert sich dieses Token und muss in `startliste.js` (Variable `CSV_URL`) aktualisiert werden.
 
