@@ -1,0 +1,273 @@
+<!-- Nachtloipencup Header: Logo mittig, zwei Scheinwerfer von links/rechts, Schnee -->
+<!-- Logo-Pfad "assets/logo-nachtloipencup.png" ggf. durch die ClubDesk-Bild-URL ersetzen -->
+<div class="nlc-header">
+  <div class="nlc-stars"></div>
+  <div class="nlc-moon">
+    <svg class="nlc-moon-logo" viewBox="0 0 1084 204" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2.52,97.92c-3.36,3.36-3.36,8.8,0,12.15l91.41,91.41c3.36,3.36,8.8,3.36,12.15,0l50.72-50.72-30.87-30.87-25.93,25.93-41.81-41.81,41.81-41.81,72.69,72.69,24.8-24.8c3.36-3.36,3.36-8.8,0-12.15L106.08,6.52c-3.36-3.36-8.8-3.36-12.15,0L2.52,97.92ZM352.2,101.98v73.06h-36.42v-65.86c0-12.43-8.5-19.63-19.41-19.63s-19.85,7.85-19.85,18.32v67.17h-36.42V15.62h36.42v51.9c7.85-6.32,18.32-10.25,30.97-10.25,27.04,0,44.71,18.32,44.71,44.71ZM403.23,128.37c3.71,12.87,13.96,19.85,27.7,19.85,12.87,0,19.19-4.36,23.77-11.99l27.26,18.1c-9.16,11.99-23.55,23.55-52.12,23.55-37.95,0-61.93-25.95-61.93-60.19s26.61-60.41,59.75-60.41c37.51,0,59.75,29.66,59.75,58.01,0,5.67-.44,10.03-.87,13.08h-83.31ZM453.6,105.69c-3.05-13.08-11.78-21.15-25.08-21.15s-22.68,7.2-25.73,21.15h50.81ZM503.97,175.04V15.62h36.42v159.42h-36.42ZM638.52,60.11h37.51l-40.78,114.93h-42.53l-40.78-114.93h37.51l24.42,79.16,24.64-79.16ZM712.23,128.37c3.71,12.87,13.96,19.85,27.7,19.85,12.87,0,19.19-4.36,23.77-11.99l27.26,18.1c-9.16,11.99-23.55,23.55-52.12,23.55-37.95,0-61.93-25.95-61.93-60.19s26.61-60.41,59.75-60.41c37.51,0,59.75,29.66,59.75,58.01,0,5.67-.44,10.03-.87,13.08h-83.31ZM762.6,105.69c-3.05-13.08-11.78-21.15-25.08-21.15s-22.68,7.2-25.73,21.15h50.81ZM867.71,175.04c-29.66,0-44.71-17.66-44.71-44.27v-39.69h-19.19v-30.97h9.16c8.07,0,12.21-4.36,12.21-12.87v-17.66h35.33v30.53h26.17v30.97h-27.48v35.33c0,11.12,5.89,17.01,16.14,17.01h11.99v31.62h-19.63ZM902.6,22.46c0-12.87,10.03-22.46,22.9-22.46s22.9,9.6,22.9,22.46-10.03,22.24-22.9,22.24-22.9-9.16-22.9-22.24ZM907.18,175.04V60.11h36.42v114.93h-36.42ZM1050.42,60.11h33.58v114.93h-33.58v-10.47c-8.07,8.5-18.97,13.3-33.15,13.3-33.37,0-57.35-25.73-57.35-60.19s23.99-58.01,57.35-58.01c14.18,0,25.08,4.36,33.15,12.43v-11.99ZM1049.11,117.68c0-16.79-10.69-28.35-26.61-28.35s-26.39,11.99-26.39,28.35,10.9,28.13,26.39,28.13,26.61-11.56,26.61-28.13Z"/>
+    </svg>
+  </div>
+
+  <div class="nlc-mountain nlc-mountain-left"></div>
+  <div class="nlc-mountain nlc-mountain-right"></div>
+
+  <div class="nlc-beam nlc-beam-left"></div>
+  <div class="nlc-beam nlc-beam-right"></div>
+
+  <div class="nlc-mast nlc-mast-left">
+    <div class="nlc-pole"></div>
+    <div class="nlc-lamp-head"></div>
+  </div>
+  <div class="nlc-mast nlc-mast-right">
+    <div class="nlc-pole"></div>
+    <div class="nlc-lamp-head"></div>
+  </div>
+
+  <div class="nlc-snow"></div>
+
+  <div class="nlc-content">
+    <h1 class="nlc-title">helvetia Nachtloipen-Cup</h1>
+    <p class="nlc-subtitle">📍 Davos Klosters</p>
+  </div>
+</div>
+
+<style>
+.nlc-header {
+  position: relative;
+  overflow: hidden;
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(ellipse at top, #16213e 0%, #0d0d1a 60%, #000000 100%);
+  border-radius: 12px;
+}
+
+/* Sterne */
+.nlc-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+    radial-gradient(2px 2px at 140px 80px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 200px 120px, #fff, transparent),
+    radial-gradient(2px 2px at 260px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 320px 140px, #fff, transparent);
+  background-repeat: repeat;
+  background-size: 360px 180px;
+  animation: nlc-twinkle 3s ease-in-out infinite alternate;
+  opacity: 0.8;
+}
+
+@keyframes nlc-twinkle {
+  from { opacity: 0.4; }
+  to   { opacity: 1; }
+}
+
+/* Mond oben im Header, mit Helvetia-Logo */
+.nlc-moon {
+  position: absolute;
+  top: 13%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 35%, #f5ecc8 0%, #e8d9a0 45%, #cdb97a 75%, #a89660 100%);
+  box-shadow: 0 0 12px 4px rgba(255, 250, 220, 0.3), 0 0 28px 10px rgba(255, 250, 220, 0.18);
+  animation: nlc-moon-glow 6s ease-in-out infinite alternate;
+}
+
+.nlc-moon-logo {
+  width: 68%;
+  height: auto;
+}
+
+.nlc-moon-logo path {
+  fill: #2b2d33;
+}
+
+@keyframes nlc-moon-glow {
+  from { box-shadow: 0 0 12px 4px rgba(255, 250, 220, 0.28), 0 0 28px 10px rgba(255, 250, 220, 0.16); }
+  to   { box-shadow: 0 0 16px 5px rgba(255, 250, 220, 0.38), 0 0 34px 12px rgba(255, 250, 220, 0.24); }
+}
+
+/* Bergsilhouetten links/rechts vom Mond, nach unten ausgefadet */
+.nlc-mountain {
+  position: absolute;
+  top: 24%;
+  width: 220px;
+  height: 130px;
+  z-index: 1;
+  opacity: 0.95;
+  pointer-events: none;
+  background: linear-gradient(to bottom, #5b7bb8, #2e4068);
+  clip-path: polygon(0% 100%, 15% 55%, 28% 72%, 42% 30%, 55% 58%, 68% 42%, 82% 68%, 100% 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+
+.nlc-mountain-left {
+  left: calc(50% - 250px);
+}
+
+.nlc-mountain-right {
+  right: calc(50% - 250px);
+  transform: scaleX(-1);
+}
+
+/* Flutlicht-Säulen: sichtbarer Mast mit Lampenkopf links/rechts unten */
+.nlc-mast {
+  position: absolute;
+  bottom: 0;
+  width: 26px;
+  height: 75%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.nlc-mast-left  { left: 6%; }
+.nlc-mast-right { right: 6%; }
+
+/* Mast: leicht nach unten ausgestellt, Leitersprossen als schmalerer Streifen mittig */
+.nlc-pole {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 100%;
+  background: linear-gradient(to top, #15161a, #4a4d55 55%, #7a7f88);
+  clip-path: polygon(21% 0%, 79% 0%, 100% 100%, 0% 100%);
+}
+
+.nlc-pole::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 100%;
+  background: repeating-linear-gradient(to top, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 26px);
+}
+
+.nlc-lamp-head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 38px;
+  height: 24px;
+  background: #2b2d33;
+  border-radius: 6px 6px 3px 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  transform-origin: 50% 100%;
+}
+
+/* Lampenkopf im gleichen Winkel wie der zugehörige Lichtkegel ausgerichtet, Drehpunkt am Mastansatz */
+.nlc-mast-left .nlc-lamp-head {
+  transform: translate(-50%, -100%) rotate(-45deg);
+}
+
+.nlc-mast-right .nlc-lamp-head {
+  transform: translate(-50%, -100%) rotate(45deg);
+}
+
+/* Lichtkegel: startet schmal am Lampenkopf und leuchtet schräg nach unten auf den Text */
+/* top muss exakt dem Mastansatz entsprechen (Mast: bottom:0, height:75% -> top:25%), sonst löst sich der Kegel vom Lampenkopf */
+/* Breite/Höhe in % statt px, damit der Kegel bei jeder Headerbreite proportional bleibt */
+.nlc-beam {
+  position: absolute;
+  top: 25%;
+  width: 22%;
+  height: 60%;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at top, rgba(255, 250, 210, 0.9) 0%, rgba(255, 250, 210, 0.35) 45%, rgba(255, 250, 210, 0) 75%);
+  clip-path: polygon(42% 0%, 58% 0%, 100% 100%, 0% 100%);
+  filter: blur(6px);
+  animation: nlc-flicker 5s ease-in-out infinite;
+}
+
+/* Offset = Mastmitte (6% + halbe Mastbreite) minus halbe Kegelbreite (11% von 22%) */
+.nlc-beam-left {
+  left: calc(6% + 13px - 11%);
+  transform-origin: top center;
+  transform: rotate(-45deg);
+}
+
+.nlc-beam-right {
+  right: calc(6% + 13px - 11%);
+  transform-origin: top center;
+  transform: rotate(45deg);
+}
+
+@keyframes nlc-flicker {
+  0%, 100% { opacity: 0.8; }
+  50%      { opacity: 1; }
+}
+
+/* Schnee */
+.nlc-snow {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background-image:
+    radial-gradient(3px 3px at 10% 10%, #fff, transparent),
+    radial-gradient(2px 2px at 30% 40%, #fff, transparent),
+    radial-gradient(3px 3px at 55% 20%, #fff, transparent),
+    radial-gradient(2px 2px at 70% 60%, #fff, transparent),
+    radial-gradient(3px 3px at 85% 30%, #fff, transparent),
+    radial-gradient(2px 2px at 95% 70%, #fff, transparent);
+  background-repeat: repeat;
+  background-size: 400px 400px;
+  opacity: 0.9;
+  animation: nlc-fall 8s linear infinite;
+}
+
+@keyframes nlc-fall {
+  from { background-position: 0 0; }
+  to   { background-position: 60px 400px; }
+}
+
+.nlc-content {
+  position: relative;
+  z-index: 6;
+  width: 100%;
+  text-align: center;
+  transform: translateY(120px);
+}
+
+.nlc-title {
+  font-size: 2.6rem;
+  margin: 0.75rem auto 0;
+  color: #eaf6ff;
+  text-align: center;
+  text-shadow:
+    0 0 8px #9fd8ff,
+    0 0 20px #4fa3ff,
+    0 0 40px #1e6fd9;
+}
+
+.nlc-subtitle {
+  margin: 0.5rem auto 0;
+  color: #b9cfe6;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .nlc-header { height: 320px; }
+  .nlc-title { font-size: 2rem; }
+  .nlc-subtitle { font-size: 1rem; }
+}
+</style>

@@ -16,3 +16,7 @@ This repo holds code snippets and image assets for the Nachtloipen Cup club webs
 - When adding or editing a snippet, note where in Clubdesk it is meant to be pasted (e.g. in a comment at the top of the file or in the commit message).
 - Preserve existing image file names and formats; Clubdesk pages may reference them by name.
 - Keep the [README.md](README.md) structure section up to date when adding new top-level folders.
+
+## Loader pattern
+
+`header.html` and `mainpage-content.html` are the actual snippet sources. They are **not** pasted into Clubdesk directly anymore — instead `header-loader.html` / `mainpage-content-loader.html` (tiny fetch scripts pointing at jsDelivr) are pasted once, and they pull the current file content from this repo's `main` branch at runtime. When editing `header.html` or `mainpage-content.html`, do not rename them or change their mount `id` (`nlc-header-mount` / `nlc-mainpage-mount`) without also updating the corresponding loader file. [.github/workflows/purge-jsdelivr.yml](.github/workflows/purge-jsdelivr.yml) purges the CDN cache on every push to `main` so changes go live quickly.

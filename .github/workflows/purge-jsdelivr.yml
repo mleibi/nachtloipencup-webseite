@@ -1,0 +1,17 @@
+name: Purge jsDelivr cache
+
+# Forces jsDelivr to serve the latest file content right after a push,
+# so the Clubdesk loaders (header-loader.html / mainpage-content-loader.html) update immediately.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge jsDelivr cache for snippet files
+        run: |
+          for file in header.html mainpage-content.html; do
+            curl -fsSL "https://purge.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/$file"
+          done

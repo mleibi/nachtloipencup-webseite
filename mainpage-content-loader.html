@@ -1,0 +1,9 @@
+<!-- In Clubdesk einfügen (Custom HTML, Inhaltsseite). Lädt mainpage-content.html automatisch vom GitHub-Repo. -->
+<div id="nlc-mainpage-mount"></div>
+<script>
+  fetch('https://cdn.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/mainpage-content.html')
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+      document.getElementById('nlc-mainpage-mount').innerHTML = html;
+    });
+</script>
