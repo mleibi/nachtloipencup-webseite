@@ -9,8 +9,9 @@ Code-Snippets und Assets für die Webseite des Nachtloipen Cup. Die Webseite sel
 
 ```
 src/
-  header/     header.html (Quelle) + header-loader.html (in Clubdesk einfügen)
-  mainpage/   mainpage-content.html (Quelle) + mainpage-content-loader.html (in Clubdesk einfügen)
+  header/       header.html (Quelle) + header-loader.html (in Clubdesk einfügen)
+  mainpage/     mainpage-content.html (Quelle) + mainpage-content-loader.html (in Clubdesk einfügen)
+  startliste/   startliste.js (Quelle, lädt Anmeldeliste live aus ClubDesk) + startliste-loader.html (in Clubdesk einfügen)
 Bilder/           Strecken-Bilder und Vereinslogo (PNG/TIFF/EPS)
 Helvetialogo/      Sponsor-Logo "Helvetia" in verschiedenen Formaten (EPS, PNG, SVG)
 ```
@@ -35,4 +36,10 @@ https://cdn.jsdelivr.net/gh/mleibi/nachtloipencup-webseite@main/src/mainpage/mai
 ```
 
 Nach dem einmaligen Einfügen der Loader in Clubdesk reicht es, die Dateien unter `src/` hier im Repo zu ändern und nach `main` zu pushen – die Webseite zeigt danach automatisch den neuen Inhalt. Ein GitHub Action Workflow ([.github/workflows/purge-jsdelivr.yml](.github/workflows/purge-jsdelivr.yml)) leert bei jedem Push den jsDelivr-Cache, damit die Änderung sofort (statt erst nach bis zu 24h CDN-Cache) sichtbar wird.
+
+## Provisorische Startliste / Anmeldeliste
+
+`src/startliste/startliste.js` lädt bei jedem Seitenaufruf live die öffentliche CSV-Exportdatei der ClubDesk-Anmeldetabelle ("Nachtloipencup Anmeldeliste 2026/27", via `fileservlet`-Link) und rendert daraus eine sortierte Tabelle (Nachname, Vorname, Jahrgang, Skiclub, Kategorie, angemeldete Renndaten). E-Mail-Adresse und Anmeldezeitpunkt werden aus Datenschutzgründen nicht angezeigt.
+
+Die CSV-URL enthält ein von ClubDesk generiertes Signatur-Token. Falls ClubDesk das Dokument ersetzt/neu hochlädt, ändert sich dieses Token und muss in `startliste.js` (Variable `CSV_URL`) aktualisiert werden.
 
