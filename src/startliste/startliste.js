@@ -359,7 +359,7 @@
     })
     .catch(function (err) {
       var mount = document.getElementById(MOUNT_ID);
-      if (mount) mount.innerHTML = '<p class="nlc-sl-empty">Anmeldeliste konnte nicht geladen werden.</p>';
+      if (mount) mount.innerHTML = '<p class="nlc-sl-empty">Provisorische Startliste konnte nicht geladen werden.</p>';
       console.error("Nachtloipencup Startliste:", err);
     });
 })();
