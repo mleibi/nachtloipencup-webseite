@@ -39,20 +39,6 @@
   var SLOT_SECONDS = 30;
   var RESERVE_SLOTS_BETWEEN_CATEGORIES = 2;
 
-  var MONTHS = {
-    "Januar": "01", "Februar": "02", "März": "03", "April": "04",
-    "Mai": "05", "Juni": "06", "Juli": "07", "August": "08",
-    "September": "09", "Oktober": "10", "November": "11", "Dezember": "12"
-  };
-
-  // Wandelt "10. Dezember 2026 - Davos - ..." in "10.12." um.
-  function shortDate(header) {
-    var m = header.match(/^(\d{1,2})\.\s*([A-Za-zÄÖÜäöü]+)\s*(\d{4})/);
-    if (!m) return header;
-    var day = m[1].length === 1 ? "0" + m[1] : m[1];
-    var month = MONTHS[m[2]] || "??";
-    return day + "." + month + ".";
-  }
 
   function waveTimesFor(header) {
     for (var i = 0; i < RACE_DATE_WAVE_TIMES.length; i++) {
@@ -270,31 +256,6 @@
     return html;
   }
 
-  function renderAnmeldeliste(entries) {
-    var sorted = entries.slice().sort(function (a, b) {
-      return a.nachname.localeCompare(b.nachname, "de") || a.vorname.localeCompare(b.vorname, "de");
-    });
-
-    var html = '<div class="nlc-sl-wrap">';
-    html += '<h3>Anmeldeliste</h3>';
-    html += '<p class="nlc-sl-count">' + sorted.length + " Anmeldung" + (sorted.length === 1 ? "" : "en") + "</p>";
-    html += '<div class="nlc-sl-table-wrap"><table class="nlc-sl-table"><thead><tr>';
-    html += "<th>Nachname</th><th>Vorname</th><th>Jahrgang</th><th>Skiclub</th><th>Kategorie</th><th>Rennen</th>";
-    html += "</tr></thead><tbody>";
-    sorted.forEach(function (e) {
-      html += "<tr>";
-      html += "<td>" + escapeHtml(e.nachname) + "</td>";
-      html += "<td>" + escapeHtml(e.vorname) + "</td>";
-      html += "<td>" + escapeHtml(e.jahrgang) + "</td>";
-      html += "<td>" + escapeHtml(e.skiclub) + "</td>";
-      html += "<td>" + escapeHtml(e.kategorie) + "</td>";
-      html += "<td>" + e.rennenLabels.join(", ") + "</td>";
-      html += "</tr>";
-    });
-    html += "</tbody></table></div></div>";
-    return html;
-  }
-
   function render(rows) {
     var mount = document.getElementById(MOUNT_ID);
     if (!mount) return;
@@ -311,12 +272,8 @@
     }
 
     var entries = buildEntries(header, rows.slice(1));
-    entries.forEach(function (e) {
-      e.rennenLabels = e.rennen.map(function (idx) { return shortDate(header[idx]); });
-    });
 
-    var html = renderAnmeldeliste(entries);
-
+    var html = "";
     var races = dateColIndexes
       .map(function (idx) {
         var raceHeader = header[idx];
@@ -370,7 +327,6 @@
     style.textContent =
       ".nlc-sl-wrap{max-width:860px;margin:0 auto;padding:1.5rem 1rem;color:#1b2436;font-size:1rem;}" +
       ".nlc-sl-wrap h3{color:#16213e;}" +
-      ".nlc-sl-count{font-weight:600;color:#16213e;margin:0 0 .75rem;}" +
       ".nlc-sl-race{margin:2rem 0 .5rem;padding-bottom:.3rem;border-bottom:3px solid #cdb97a;color:#16213e;}" +
       ".nlc-sl-disclaimer{background:#fdf6e3;border:1px solid #e3d7b0;border-radius:8px;padding:.7rem 1rem;font-size:.9rem;color:#5b4b1f;}" +
       ".nlc-sl-race-label{font-weight:600;color:#16213e;}" +
